@@ -8,148 +8,180 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; height: 100vh; overflow: hidden; }
         .app-container { display: flex; flex-direction: column; height: 100vh; background: #fff; max-width: 600px; margin: 0 auto; }
-        
+
         .login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px; }
         .login-box { background: white; padding: 30px; border-radius: 20px; width: 100%; text-align: center; }
-        .login-box h2 { color: #1877f2; margin-bottom: 15px; }
+        .login-box h2 { color: #1877f2; margin-bottom: 10px; }
+        .login-box p { color: #666; margin-bottom: 15px; }
         .login-box input { width: 100%; padding: 15px; border: 2px solid #ddd; border-radius: 10px; margin-bottom: 15px; font-size: 16px; }
         .login-box button { width: 100%; padding: 15px; background: #1877f2; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; }
 
-        .header { padding: 15px; border-bottom: 1px solid #ddd; display: flex; align-items: center; gap: 10px; }
+        .header { padding: 15px; border-bottom: 1px solid #ddd; display: flex; align-items: center; gap: 10px; background: white; }
         .avatar { width: 40px; height: 40px; background: #1877f2; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; }
         .messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 15px; line-height: 1.4; }
+        .msg { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 15px; line-height: 1.4; word-break: break-word; }
         .sent { align-self: flex-end; background: #1877f2; color: white; border-bottom-right-radius: 4px; }
         .received { align-self: flex-start; background: #f0f2f5; color: black; border-bottom-left-radius: 4px; }
 
         .input-area { padding: 15px; border-top: 1px solid #ddd; display: flex; gap: 10px; background: white; }
         .input-area input { flex: 1; padding: 12px; background: #f0f2f5; border: none; border-radius: 20px; outline: none; font-size: 16px; }
         .input-area button { background: #1877f2; border: none; color: white; font-weight: bold; font-size: 14px; cursor: pointer; padding: 10px 18px; border-radius: 20px; }
-        #typing { display: none; padding: 5px 15px; font-size: 12px; color: #666; }
+        #typing { display: none; padding: 5px 15px; font-size: 13px; color: #999; font-style: italic; }
     </style>
 </head>
 <body>
 
-    <div class="login-overlay" id="login">
-        <div class="login-box">
-            <h2>🔑 Ingresa tu API Key</h2>
-            <p style="margin-bottom:15px; color:#666;">Token de Hugging Face (hf_...)</p>
-            <input type="password" id="apiInput" placeholder="hf_...">
-            <button onclick="iniciar()">Comenzar Chat</button>
+<div class="login-overlay" id="login">
+    <div class="login-box">
+        <h2>🔑 API Key</h2>
+        <p>Ingresa tu token de Hugging Face</p>
+        <input type="password" id="apiInput" placeholder="hf_...">
+        <button onclick="iniciar()">Entrar al Chat</button>
+    </div>
+</div>
+
+<div class="app-container">
+    <header class="header">
+        <div class="avatar">🤖</div>
+        <div>
+            <h4>Mi IA (Qwen)</h4>
+            <small style="color:green;">● Activo</small>
         </div>
-    </div>
+    </header>
 
-    <div class="app-container">
-        <header class="header">
-            <div class="avatar">🤖</div>
-            <div>
-                <h4>Mi IA Personal (Qwen)</h4>
-                <small style="color: green;">● Activo ahora</small>
-            </div>
-        </header>
+    <div class="messages" id="chat"></div>
+    <div id="typing">Escribiendo...</div>
 
-        <div class="messages" id="chat"></div>
-        <div id="typing">Escribiendo...</div>
+    <form class="input-area" onsubmit="enviar(event)">
+        <input type="text" id="userInput" placeholder="Escribe un mensaje..." autocomplete="off">
+        <button type="submit">Enviar</button>
+    </form>
+</div>
 
-        <form class="input-area" onsubmit="enviar(event)">
-            <input type="text" id="userInput" placeholder="Escribe un mensaje..." autocomplete="off">
-            <button type="submit">Enviar</button>
-        </form>
-    </div>
+<script>
+    const SPACE = "https://alejandrott24-mi-gemma-servidor.hf.space";
+    let MI_KEY = "";
+    let historial = [];
+    let session_hash = Math.random().toString(36).substring(2, 12);
 
-    <script>
-        // URL de tu Space — el /queue/join es el endpoint correcto para Gradio moderno
-        const SPACE_URL = "https://alejandrott24-mi-gemma-servidor.hf.space";
-        let MI_KEY = "";
-        let historial = [];
+    function iniciar() {
+        const key = document.getElementById('apiInput').value.trim();
+        if (key.startsWith('hf_')) {
+            MI_KEY = key;
+            document.getElementById('login').style.display = 'none';
+            addMsg("¡Hola! ¿En qué puedo ayudarte?", 'received');
+        } else {
+            alert("Token inválido, debe empezar con hf_");
+        }
+    }
 
-        function iniciar() {
-            const key = document.getElementById('apiInput').value.trim();
-            if (key.startsWith('hf_')) {
-                MI_KEY = key;
-                document.getElementById('login').style.display = 'none';
-                addMsg("¡Hola! ¿En qué puedo ayudarte?", 'received');
-            } else {
-                alert("Ingresa una clave válida que empiece con hf_");
+    function addMsg(txt, tipo) {
+        const div = document.createElement('div');
+        div.className = `msg ${tipo}`;
+        div.textContent = txt;
+        const chat = document.getElementById('chat');
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+        return div;
+    }
+
+    async function enviar(e) {
+        e.preventDefault();
+        const input = document.getElementById('userInput');
+        const prompt = input.value.trim();
+        if (!prompt || !MI_KEY) return;
+
+        addMsg(prompt, 'sent');
+        input.value = '';
+        input.disabled = true;
+        document.getElementById('typing').style.display = 'block';
+
+        try {
+            const res = await fetch(`${SPACE}/run/predict`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${MI_KEY}`
+                },
+                body: JSON.stringify({
+                    fn_index: 0,
+                    data: [prompt, historial],
+                    session_hash: session_hash
+                })
+            });
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+
+            let respuesta = "";
+            if (json.data && json.data[1]) {
+                const nuevoHistorial = json.data[1];
+                const ultimo = nuevoHistorial[nuevoHistorial.length - 1];
+                if (ultimo && ultimo.role === "assistant") {
+                    respuesta = ultimo.content;
+                    historial = nuevoHistorial;
+                }
             }
-        }
 
-        function addMsg(txt, tipo) {
-            const div = document.createElement('div');
-            div.className = `msg ${tipo}`;
-            div.textContent = txt;
-            const chat = document.getElementById('chat');
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
-        }
+            if (!respuesta) throw new Error("sin_respuesta");
+            addMsg(respuesta, 'received');
 
-        async function enviar(e) {
-            e.preventDefault();
-            const input = document.getElementById('userInput');
-            const prompt = input.value.trim();
-            if (!prompt || !MI_KEY) return;
-
-            addMsg(prompt, 'sent');
-            input.value = '';
-            document.getElementById('typing').style.display = 'block';
-
+        } catch (err) {
             try {
-                // Paso 1: unirse a la cola de Gradio
-                const joinRes = await fetch(`${SPACE_URL}/queue/join`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${MI_KEY}`
-                    },
-                    body: JSON.stringify({
-                        data: [prompt, historial, ""],
-                        fn_index: 0,
-                        session_hash: Math.random().toString(36).substring(2)
-                    })
-                });
-
-                const joinData = await joinRes.json();
-                const eventId = joinData.event_id;
-
-                // Paso 2: escuchar el resultado via SSE
-                const respuesta = await new Promise((resolve, reject) => {
-                    const evtSource = new EventSource(
-                        `${SPACE_URL}/queue/data?session_hash=${joinData.session_hash}`
-                    );
-                    
-                    evtSource.onmessage = (event) => {
-                        const msg = JSON.parse(event.data);
-                        if (msg.msg === "process_completed") {
-                            evtSource.close();
-                            resolve(msg.output?.data?.[0] ?? "Sin respuesta");
-                        }
-                        if (msg.msg === "queue_full" || msg.msg === "error") {
-                            evtSource.close();
-                            reject(new Error("Error en el servidor"));
-                        }
-                    };
-
-                    evtSource.onerror = () => {
-                        evtSource.close();
-                        reject(new Error("Conexión perdida"));
-                    };
-
-                    // Timeout de 30 segundos
-                    setTimeout(() => {
-                        evtSource.close();
-                        reject(new Error("Tiempo de espera agotado"));
-                    }, 30000);
-                });
-
-                historial.push([prompt, respuesta]);
+                const respuesta = await usarCola(prompt);
                 addMsg(respuesta, 'received');
-
-            } catch (err) {
-                addMsg("❌ Error: " + err.message, 'received');
-            } finally {
-                document.getElementById('typing').style.display = 'none';
+            } catch (err2) {
+                addMsg("❌ No se pudo conectar. ¿Está activo el Space?", 'received');
             }
+        } finally {
+            document.getElementById('typing').style.display = 'none';
+            input.disabled = false;
+            input.focus();
         }
-    </script>
+    }
+
+    async function usarCola(prompt) {
+        await fetch(`${SPACE}/queue/join`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${MI_KEY}`
+            },
+            body: JSON.stringify({
+                fn_index: 0,
+                data: [prompt, historial],
+                session_hash: session_hash
+            })
+        });
+
+        return new Promise((resolve, reject) => {
+            const sse = new EventSource(`${SPACE}/queue/data?session_hash=${session_hash}`);
+            const timeout = setTimeout(() => { sse.close(); reject(new Error("Timeout")); }, 60000);
+
+            sse.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.msg === "process_completed") {
+                        clearTimeout(timeout);
+                        sse.close();
+                        const nuevoHistorial = msg.output?.data?.[1];
+                        if (nuevoHistorial) {
+                            const ultimo = nuevoHistorial[nuevoHistorial.length - 1];
+                            if (ultimo?.role === "assistant") {
+                                historial = nuevoHistorial;
+                                resolve(ultimo.content);
+                                return;
+                            }
+                        }
+                        reject(new Error("Formato inesperado"));
+                    }
+                    if (msg.msg === "error") { clearTimeout(timeout); sse.close(); reject(new Error("Error del servidor")); }
+                } catch(e) {}
+            };
+
+            sse.onerror = () => { clearTimeout(timeout); sse.close(); reject(new Error("SSE error")); };
+        });
+    }
+</script>
 </body>
 </html>
