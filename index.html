@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mi IA Personal - Chat</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #fff;
+        }
+        
+        /* 🔐 PANTALLA DE LOGIN */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+        .login-box {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .login-box h2 {
+            color: #1877f2;
+            margin-bottom: 12px;
+            font-size: 24px;
+            text-align: center;
+        }
+        .login-box p {            color: #65676b;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .login-box label {
+            display: block;
+            margin-bottom: 8px;
+            color: #050505;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .login-box input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e4e6eb;
+            border-radius: 8px;
+            font-size: 15px;
+            margin-bottom: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .login-box input:focus {
+            border-color: #1877f2;
+        }
+        .login-box button {
+            width: 100%;
+            padding: 14px;
+            background: #1877f2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .login-box button:hover {
+            background: #166fe5;
+        }
+        .login-box button:disabled {
+            background: #bcc0c4;
+            cursor: not-allowed;
+        }
+        .login-error {
+            color: #fa383e;
+            font-size: 13px;
+            margin-top: 12px;
+            text-align: center;            display: none;
+        }
+        .login-hint {
+            color: #65676b;
+            font-size: 12px;
+            margin-top: 16px;
+            text-align: center;
+            line-height: 1.4;
+        }
+        .login-hint a {
+            color: #1877f2;
+            text-decoration: none;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background-color: #fff;
+            border-bottom: 1px solid #e4e6eb;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            z-index: 100;
+        }
+        .header-left { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .back-button {
+            background: none; border: none; color: #1877f2; cursor: pointer;
+            padding: 4px; display: flex; align-items: center; justify-content: center;
+        }
+        .back-button svg { width: 24px; height: 24px; }
+        .profile-section { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .avatar-container { position: relative; }
+        .avatar {
+            width: 40px; height: 40px; background-color: #1877f2; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;
+        }
+        .status-indicator {
+            position: absolute; bottom: 0; right: 0; width: 12px; height: 12px;
+            background-color: #31a24c; border: 2px solid white; border-radius: 50%;
+        }
+        .profile-info h1 { font-size: 16px; font-weight: 600; color: #050505; line-height: 1.2; }
+        .profile-info p { font-size: 12px; color: #31a24c; font-weight: 500; }
+        .header-actions { display: flex; gap: 16px; align-items: center; }
+        .header-icon {
+            background: none; border: none; color: #1877f2; cursor: pointer;
+            padding: 8px; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; transition: background-color 0.2s;
+        }
+        .header-icon:hover { background-color: #f0f2f5; }
+        .header-icon svg { width: 20px; height: 20px; }        .messages-container {
+            flex: 1; overflow-y: auto; padding: 16px; background-color: #fff;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .message { display: flex; max-width: 75%; animation: messageSlide 0.3s ease-out; }
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message.received { align-self: flex-start; }
+        .message.sent { align-self: flex-end; }
+        .message-bubble {
+            padding: 8px 12px; border-radius: 18px; font-size: 15px;
+            line-height: 1.4; word-wrap: break-word;
+        }
+        .message.received .message-bubble {
+            background-color: #f0f2f5; color: #050505; border-bottom-left-radius: 4px;
+        }
+        .message.sent .message-bubble {
+            background-color: #1877f2; color: white; border-bottom-right-radius: 4px;
+        }
+        .message-time { font-size: 11px; margin-top: 4px; opacity: 0.7; }
+        .message.received .message-time { text-align: left; color: #65676b; }
+        .message.sent .message-time { text-align: right; color: rgba(255, 255, 255, 0.9); }
+        .typing-indicator { display: none; align-self: flex-start; max-width: 75%; }
+        .typing-indicator.active { display: flex; }
+        .typing-bubble {
+            background-color: #f0f2f5; padding: 12px 16px; border-radius: 18px;
+            border-bottom-left-radius: 4px; display: flex; gap: 4px;
+        }
+        .typing-dot {
+            width: 8px; height: 8px; background-color: #65676b; border-radius: 50%;
+            animation: typingBounce 1.4s infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        .input-container {
+            padding: 12px 16px; background-color: #fff; border-top: 1px solid #e4e6eb;
+        }
+        .input-form { display: flex; align-items: center; gap: 8px; }
+        .input-button {
+            background: none; border: none; color: #1877f2; cursor: pointer;
+            padding: 8px; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; transition: background-color 0.2s;
+        }
+        .input-button:hover { background-color: #f0f2f5; }        .input-button svg { width: 24px; height: 24px; }
+        .input-wrapper { flex: 1; position: relative; }
+        .input-field {
+            width: 100%; padding: 10px 44px 10px 16px; background-color: #f0f2f5;
+            border: none; border-radius: 20px; font-size: 15px; outline: none;
+            transition: background-color 0.2s;
+        }
+        .input-field:focus { background-color: #e4e6eb; }
+        .emoji-button {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: #1877f2; cursor: pointer; padding: 4px;
+        }
+        .emoji-button svg { width: 20px; height: 20px; }
+        .send-button {
+            background: none; border: none; color: #1877f2; cursor: pointer;
+            padding: 8px; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; transition: all 0.2s;
+        }
+        .send-button:disabled { color: #bcc0c4; cursor: not-allowed; }
+        .send-button:not(:disabled):hover { background-color: #f0f2f5; }
+        .send-button svg { width: 24px; height: 24px; }
+        .bottom-sheet {
+            display: none; position: fixed; bottom: 0; left: 0; right: 0;
+            background-color: #242526; border-radius: 20px 20px 0 0;
+            padding: 20px; z-index: 1000; animation: slideUp 0.3s ease-out;
+        }
+        .bottom-sheet.active { display: block; }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .bottom-sheet-header {
+            color: #b0b3b8; font-size: 15px; margin-bottom: 16px; text-align: center;
+        }
+        .bottom-sheet-actions { display: flex; gap: 16px; justify-content: center; }
+        .sheet-action {
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            color: #e4e6eb; cursor: pointer; padding: 12px;
+        }
+        .sheet-action-icon {
+            width: 48px; height: 48px; background-color: #3a3b3c; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .sheet-action-text { font-size: 12px; }
+        @media (max-width: 768px) {
+            .header { padding: 8px 12px; }
+            .profile-info h1 { font-size: 15px; }
+            .messages-container { padding: 12px; }
+            .message { max-width: 85%; }
+            .input-container { padding: 8px 12px; }            .login-box { padding: 24px; }
+        }
+        @media (min-width: 769px) {
+            .app-container {
+                max-width: 600px; margin: 0 auto;
+                box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            }
+        }
+        .messages-container::-webkit-scrollbar { width: 6px; }
+        .messages-container::-webkit-scrollbar-track { background: #f0f2f5; }
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #bcc0c4; border-radius: 3px;
+        }
+        .messages-container::-webkit-scrollbar-thumb:hover { background: #8a8d91; }
+    </style>
+</head>
+<body>
+    <!-- 🔐 PANTALLA DE LOGIN -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h2>🔑 Ingresa tu API Key</h2>
+            <p>Para usar esta aplicación necesitas tu clave de Hugging Face</p>
+            <label for="apiKeyInput">Clave de API:</label>
+            <input 
+                type="password" 
+                id="apiKeyInput" 
+                placeholder="hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                autocomplete="off"
+            >
+            <button onclick="guardarApiKey()" id="btnGuardar">Comenzar Chat</button>
+            <div class="login-error" id="loginError">Por favor ingresa una clave válida</div>
+            <div class="login-hint">
+                ¿No tienes clave? <a href="https://huggingface.co/settings/tokens" target="_blank">Crea una aquí</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <header class="header">
+            <div class="header-left">
+                <button class="back-button" onclick="goBack()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                <div class="profile-section">
+                    <div class="avatar-container">
+                        <div class="avatar">🤖</div>
+                        <div class="status-indicator"></div>
+                    </div>                    <div class="profile-info">
+                        <h1>Mi IA Personal</h1>
+                        <p>Activo ahora</p>
+                    </div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="header-icon" onclick="makeCall()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                    </svg>
+                </button>
+                <button class="header-icon" onclick="startVideo()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                </button>
+                <button class="header-icon" onclick="showInfo()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="messages-container" id="messagesContainer"></main>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="typing-bubble">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+
+        <footer class="input-container">
+            <form class="input-form" id="messageForm" onsubmit="handleSendMessage(event)">
+                <button type="button" class="input-button" onclick="toggleBottomSheet()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                    </svg>
+                </button>
+                <div class="input-wrapper">
+                    <input type="text" class="input-field" id="messageInput" placeholder="Escribe un mensaje..." autocomplete="off" disabled>
+                    <button type="button" class="emoji-button" onclick="insertEmoji()">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </button>
+                </div>                <button type="submit" class="send-button" id="sendButton" disabled>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                </button>
+            </form>
+        </footer>
+
+        <div class="bottom-sheet" id="bottomSheet">
+            <div class="bottom-sheet-header">Escribamos o creemos juntos</div>
+            <div class="bottom-sheet-actions">
+                <div class="sheet-action" onclick="selectAction('photo')"><div class="sheet-action-icon">📷</div><div class="sheet-action-text">Foto</div></div>
+                <div class="sheet-action" onclick="selectAction('file')"><div class="sheet-action-icon">📎</div><div class="sheet-action-text">Archivo</div></div>
+                <div class="sheet-action" onclick="selectAction('voice')"><div class="sheet-action-icon">🎤</div><div class="sheet-action-text">Voz</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🔧 CONFIGURACIÓN
+        const HF_API_URL = 'https://alejandrott24-mi-gemma-servidor.hf.space/run/predict';
+        let HF_API_KEY = ''; // ← Se llena desde el login
+        const FN_INDEX = 0;
+        const USAR_FORMATO_COMPLETO = false; // Cambia a true si tu Space lo requiere
+
+        // Estado
+        let messages = [{ id: 1, text: '¡Hola! ¿Cómo vas? Tiempo sin hablar.', sender: 'ai', timestamp: new Date() }];
+        let isTyping = false;
+
+        // Elementos DOM
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const bottomSheet = document.getElementById('bottomSheet');
+        const loginOverlay = document.getElementById('loginOverlay');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const loginError = document.getElementById('loginError');
+        const btnGuardar = document.getElementById('btnGuardar');
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            apiKeyInput.focus();
+            apiKeyInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') guardarApiKey();
+            });
+        });
+
+        // 🔐 FUNCIÓN PARA GUARDAR API KEY
+        function guardarApiKey() {            const clave = apiKeyInput.value.trim();
+            if (!clave || !clave.startsWith('hf_')) {
+                loginError.style.display = 'block';
+                loginError.textContent = 'Ingresa una clave válida (debe empezar con "hf_")';
+                apiKeyInput.focus();
+                return;
+            }
+            
+            HF_API_KEY = clave;
+            loginOverlay.style.display = 'none';
+            messageInput.disabled = false;
+            messageInput.focus();
+            renderMessages();
+        }
+
+        function renderMessages() {
+            messagesContainer.innerHTML = '';
+            messages.forEach(msg => messagesContainer.appendChild(createMessageElement(msg)));
+            scrollToBottom();
+        }
+
+        function createMessageElement(msg) {
+            const div = document.createElement('div');
+            div.className = `message ${msg.sender === 'user' ? 'sent' : 'received'}`;
+            div.innerHTML = `<div class="message-bubble">${escapeHtml(msg.text)}<div class="message-time">${formatTime(msg.timestamp)}</div></div>`;
+            return div;
+        }
+
+        function formatTime(date) {
+            const d = new Date(date);
+            let h = d.getHours(), m = d.getMinutes().toString().padStart(2,'0');
+            const ampm = h >= 12 ? 'p.m.' : 'a.m.';
+            h = h % 12 || 12;
+            return `${h}:${m} ${ampm}`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function updateSendButton() {
+            sendButton.disabled = !messageInput.value.trim() || isTyping || !HF_API_KEY;
+        }
+        function handleSendMessage(e) {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            if (!text || isTyping || !HF_API_KEY) return;
+
+            messages.push({ id: Date.now(), text, sender: 'user', timestamp: new Date() });
+            renderMessages();
+            messageInput.value = '';
+            updateSendButton();
+            fetchHuggingFaceResponse(text);
+        }
+
+        // 🔄 CONEXIÓN CON HUGGING FACE
+        async function fetchHuggingFaceResponse(userMessage) {
+            setIsTyping(true);
+            try {
+                const response = await fetch(HF_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${HF_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        fn_index: FN_INDEX,
+                         USAR_FORMATO_COMPLETO 
+                            ? [userMessage, [], "Eres un asistente útil y amigable"]
+                            : [userMessage]
+                    })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('Clave inválida. Recarga la página e intenta de nuevo.');
+                    }
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('Respuesta HF:', result);
+
+                const aiText = result.data?.[0] || result.response || result?.[0] || "No pude procesar tu mensaje";
+
+                messages.push({ id: Date.now(), text: aiText, sender: 'ai', timestamp: new Date() });
+                renderMessages();
+            } catch (error) {
+                console.error('Error HF:', error);
+                messages.push({
+                    id: Date.now(),
+                    text: `⚠️ ${error.message}`,
+                    sender: 'ai',                    timestamp: new Date()
+                });
+                renderMessages();
+            } finally {
+                setIsTyping(false);
+            }
+        }
+
+        function setIsTyping(typing) {
+            isTyping = typing;
+            typingIndicator.classList.toggle('active', typing);
+            typingIndicator.style.display = typing ? 'flex' : 'none';
+            if (typing) scrollToBottom();
+            updateSendButton();
+        }
+
+        messageInput.addEventListener('input', updateSendButton);
+
+        // Funciones UI
+        function toggleBottomSheet() { bottomSheet.classList.toggle('active'); }
+        function selectAction(action) { console.log(action); toggleBottomSheet(); }
+        function insertEmoji() {
+            const emojis = ['😊','👍','❤️','😂','🎉','🔥'];
+            messageInput.value += emojis[Math.floor(Math.random()*emojis.length)];
+            messageInput.focus(); updateSendButton();
+        }
+        function goBack() { window.history.length > 1 ? window.history.back() : console.log('Atrás'); }
+        function makeCall() { alert('📞 Llamada...'); }
+        function startVideo() { alert('📹 Video...'); }
+        function showInfo() { 
+            alert('ℹ️ Tu IA Personal\nConectada a Hugging Face Spaces\n\nClave guardada en memoria (se borra al cerrar)'); 
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!bottomSheet.contains(e.target) && !e.target.closest('.input-button')) {
+                bottomSheet.classList.remove('active');
+            }
+        });
+        document.addEventListener('gesturestart', e => e.preventDefault());
+    </script>
+</body>
+</html>
