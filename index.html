@@ -5,118 +5,152 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mi IA Personal - Chat</title>
     <style>
+        /* Estilos generales para móvil */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: sans-serif; background-color: #f0f2f5; height: 100vh; overflow: hidden; }
+        body { font-family: -apple-system, sans-serif; background-color: #f0f2f5; height: 100vh; overflow: hidden; }
         .app-container { display: flex; flex-direction: column; height: 100vh; background-color: #fff; max-width: 600px; margin: 0 auto; }
         
-        /* 🔐 LOGIN */
-        .login-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
-        .login-box { background: white; border-radius: 16px; padding: 32px; width: 100%; text-align: center; }
-        .login-box input { width: 100%; padding: 12px; border: 2px solid #e4e6eb; border-radius: 8px; margin: 16px 0; outline: none; }
-        .login-box button { width: 100%; padding: 14px; background: #1877f2; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        /* 🔐 Pantalla de Acceso */
+        .login-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+        .login-box { background: white; border-radius: 16px; padding: 32px; width: 100%; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .login-box h2 { color: #1877f2; margin-bottom: 8px; font-size: 22px; }
+        .login-box p { font-size: 14px; color: #65676b; margin-bottom: 20px; }
+        .login-box input { width: 100%; padding: 14px; border: 2px solid #e4e6eb; border-radius: 8px; margin-bottom: 16px; outline: none; font-size: 16px; }
+        .login-box button { width: 100%; padding: 14px; background: #1877f2; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
 
-        /* HEADER */
-        .header { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e4e6eb; }
-        .avatar { width: 40px; height: 40px; background: #1877f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; margin-right: 12px; }
+        /* Cabecera estilo Messenger */
+        .header { display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid #e4e6eb; background: white; }
+        .avatar { width: 40px; height: 40px; background: #1877f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; margin-right: 12px; font-size: 20px; }
+        .header-info h3 { font-size: 16px; color: #050505; }
+        .header-info span { font-size: 12px; color: #31a24c; font-weight: 500; }
 
-        /* CHAT */
-        .messages-container { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-        .message { display: flex; max-width: 75%; margin-bottom: 4px; }
+        /* Contenedor de Chat */
+        .messages-container { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; background: white; }
+        .message { display: flex; max-width: 80%; }
         .message.sent { align-self: flex-end; }
         .message.received { align-self: flex-start; }
-        .bubble { padding: 8px 12px; border-radius: 18px; font-size: 15px; }
-        .sent .bubble { background: #1877f2; color: white; }
-        .received .bubble { background: #f0f2f5; color: black; }
+        .bubble { padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; position: relative; }
+        .sent .bubble { background: #1877f2; color: white; border-bottom-right-radius: 4px; }
+        .received .bubble { background: #f0f2f5; color: #050505; border-bottom-left-radius: 4px; }
 
-        /* BARRA DE ESCRITURA - LO QUE FALTABA */
-        .input-area { padding: 12px 16px; border-top: 1px solid #e4e6eb; background: white; }
-        .input-form { display: flex; gap: 8px; align-items: center; }
-        .input-field { flex: 1; padding: 10px 16px; background: #f0f2f5; border: none; border-radius: 20px; outline: none; font-size: 15px; }
-        .send-btn { background: none; border: none; color: #1877f2; font-weight: bold; font-size: 16px; cursor: pointer; padding: 5px 10px; }
-        .send-btn:disabled { color: #bcc0c4; }
+        /* Área de entrada de texto */
+        .input-area { padding: 12px 16px; border-top: 1px solid #e4e6eb; background: white; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+        .input-form { display: flex; gap: 10px; align-items: center; }
+        .input-field { flex: 1; padding: 12px 18px; background: #f0f2f5; border: none; border-radius: 25px; outline: none; font-size: 16px; }
+        .send-btn { background: none; border: none; color: #1877f2; font-weight: bold; font-size: 16px; cursor: pointer; padding: 4px 8px; transition: opacity 0.2s; }
+        .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         
-        #typing { display: none; padding: 8px 16px; font-size: 12px; color: #65676b; }
+        #typing { display: none; padding: 8px 20px; font-size: 13px; color: #65676b; font-style: italic; }
     </style>
 </head>
 <body>
 
     <div class="login-overlay" id="loginOverlay">
         <div class="login-box">
-            <h2>🔑 Ingresa tu API Key</h2>
-            <input type="password" id="keyInput" placeholder="hf_xxxxxxxxxxxx">
-            <button onclick="conectar()">Comenzar Chat</button>
+            <h2>Acceso a Mi IA</h2>
+            <p>Ingresa tu clave de Hugging Face</p>
+            <input type="password" id="keyInput" placeholder="hf_xxxxxxxxxxxx" value="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">
+            <button onclick="conectar()">Entrar al Chat</button>
         </div>
     </div>
 
     <div class="app-container">
         <header class="header">
             <div class="avatar">🤖</div>
-            <div>
-                <h3 style="font-size: 16px;">Mi IA Personal</h3>
-                <span style="font-size: 12px; color: #31a24c;">Activo ahora</span>
+            <div class="header-info">
+                <h3>Mi IA Personal (Gemma)</h3>
+                <span>Activo ahora</span>
             </div>
         </header>
 
         <main class="messages-container" id="chatBox"></main>
-        <div id="typing">La IA está escribiendo...</div>
+        
+        <div id="typing">La IA está procesando...</div>
 
         <footer class="input-area">
-            <form class="input-form" onsubmit="enviar(event)">
-                <input type="text" id="msgInput" class="input-field" placeholder="Escribe un mensaje..." autocomplete="off">
+            <form class="input-form" onsubmit="enviarMensaje(event)">
+                <input type="text" id="userInput" class="input-field" placeholder="Escribe un mensaje..." autocomplete="off">
                 <button type="submit" id="sendBtn" class="send-btn">Enviar</button>
             </form>
         </footer>
     </div>
 
     <script>
+        // URL de tu servidor Gemma en Hugging Face
         const API_URL = 'https://alejandrott24-mi-gemma-servidor.hf.space/run/predict';
-        let MI_LLAVE = '';
+        let API_KEY = '';
+
+        const chatBox = document.getElementById('chatBox');
+        const userInput = document.getElementById('userInput');
+        const typingIndicator = document.getElementById('typing');
+        const loginOverlay = document.getElementById('loginOverlay');
 
         function conectar() {
             const val = document.getElementById('keyInput').value.trim();
             if (val.startsWith('hf_')) {
-                MI_LLAVE = val;
-                document.getElementById('loginOverlay').style.display = 'none';
-            } else { alert("Llave inválida"); }
-        }
-
-        function agregarMensaje(texto, tipo) {
-            const box = document.getElementById('chatBox');
-            const div = document.createElement('div');
-            div.className = `message ${tipo}`;
-            div.innerHTML = `<div class="bubble">${texto}</div>`;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        async function enviar(e) {
-            e.preventDefault();
-            const input = document.getElementById('msgInput');
-            const prompt = input.value.trim();
-            if (!prompt || !MI_LLAVE) return;
-
-            agregarMensaje(prompt, 'sent');
-            input.value = '';
-            document.getElementById('typing').style.display = 'block';
-
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${MI_LLAVE}` },
-                    body: JSON.stringify({ data: [prompt, [], ""] })
-                });
-                const json = await res.json();
-                agregarMensaje(json.data[0], 'received');
-            } catch (err) {
-                agregarMensaje("Error al conectar con la IA", 'received');
-            } finally {
-                document.getElementById('typing').style.display = 'none';
+                API_KEY = val;
+                loginOverlay.style.display = 'none';
+                userInput.focus();
+                // Mensaje inicial opcional
+                if(chatBox.children.length === 0) {
+                    agregarMensaje("¡Listo! Ya estoy conectado. ¿En qué te ayudo?", 'received');
+                }
+            } else {
+                alert("Por favor ingresa una API Key válida.");
             }
         }
 
-        // Mensaje de bienvenida
-        window.onload = () => agregarMensaje("¡Hola! ¿Cómo vas?", 'received');
+        function agregarMensaje(texto, tipo) {
+            const div = document.createElement('div');
+            div.className = `message ${tipo}`;
+            div.innerHTML = `<div class="bubble">${texto}</div>`;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function enviarMensaje(e) {
+            e.preventDefault();
+            const prompt = userInput.value.trim();
+            if (!prompt || !API_KEY) return;
+
+            // Mostrar mensaje del usuario
+            agregarMensaje(prompt, 'sent');
+            userInput.value = '';
+            typingIndicator.style.display = 'block';
+
+            try {
+                // Petición a Hugging Face usando el formato de tu servidor Gemma
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${API_KEY}` 
+                    },
+                    body: JSON.stringify({ 
+                        data: [prompt, [], ""] // Estructura estándar de Gradio Chatbot
+                    })
+                });
+
+                if (!response.ok) throw new Error('Error en respuesta');
+
+                const result = await response.json();
+                
+                // Extraer respuesta del modelo Qwen/Gemma
+                const aiResponse = result.data ? result.data[0] : "No recibí respuesta del servidor.";
+                agregarMensaje(aiResponse, 'received');
+
+            } catch (err) {
+                console.error(err);
+                agregarMensaje("Error al conectar con la IA. Revisa si el Space está activo.", 'received');
+            } finally {
+                typingIndicator.style.display = 'none';
+            }
+        }
+
+        // Permitir entrar con la tecla Enter en el login
+        document.getElementById('keyInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') conectar();
+        });
     </script>
 </body>
-                    </html>
-                    
+</html>
